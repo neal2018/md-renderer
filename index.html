@@ -28,7 +28,7 @@
     const options = {
       renderer: renderer,
       highlight: (code, lang) => {
-        const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+        const language = hljs.getLanguage(lang) ? lang : "plaintext";
         return hljs.highlight(code, { language }).value;
       },
       pedantic: false,
@@ -41,8 +41,8 @@
     };
     marked.setOptions(options);
 
-    const mathsExpression = (expr) => {
-      const htmldecode = (text) => {
+    const mathsExpression = expr => {
+      const htmldecode = text => {
         // TODO: handle HTML decode better
         text = text.replace("\\\n", "\\\\").replace("\\ ", "\\\\")
         let temp = document.createElement("div");
@@ -71,26 +71,19 @@
 
     const unchanged = new marked.Renderer()
 
-    renderer.paragraph = (text) => {
-      const blockRegex = /\$\$[^\$]+\$\$/g
-      const inlineRegex = /\$[^\$]+\$/g
-      const blockExprArray = text.match(blockRegex)
-      const inlineExprArray = text.match(inlineRegex)
-
-      blockExprArray && blockExprArray.forEach((expr) => {
+    renderer.paragraph = text => {
+      const mathRegex = /\$[\s\S]*[^\\]\$/g
+      const mathExprArray = text.match(mathRegex)
+      console.log(mathExprArray)
+      mathExprArray && mathExprArray.forEach((expr) => {
         const result = mathsExpression(expr)
         result && (text = text.replace(expr, result))
       })
 
-      inlineExprArray && inlineExprArray.forEach((expr) => {
-        const result = mathsExpression(expr)
-        result && (text = text.replace(expr, result))
-      })
-
-      return unchanged.paragraph(text)
+      return unchanged.paragraph(text.replace("\\$", "$"))
     }
 
-    import { createApp } from 'https://unpkg.com/petite-vue?module'
+    import { createApp } from "https://unpkg.com/petite-vue?module"
     createApp({
       input: `# title
 
@@ -111,7 +104,7 @@ $
       update: _.debounce(function (e) {
         this.input = e.target.value
       }, 100)
-    }).mount('#editor')
+    }).mount("#editor")
   </script>
 
   <div id="editor">
@@ -126,7 +119,7 @@ $
       margin: 0;
       height: 100%;
       font-size: 24px;
-      font-family: 'Fira Code', courier, monospace;
+      font-family: "Fira Code", courier, monospace;
       color: #e2e8f0;
       background-color: #27272a;
     }
@@ -149,7 +142,7 @@ $
       color: #e2e8f0;
       background-color: #27272a;
       font-size: 24px;
-      font-family: 'Fira Code', courier, monospace;
+      font-family: "Fira Code", courier, monospace;
       padding: 20px;
     }
 
