@@ -44,12 +44,9 @@
     const mathsExpression = expr => {
       const htmldecode = text => {
         // TODO: handle HTML decode better
-        text = text.replace("\\\n", "\\\\").replace("\\ ", "\\\\")
         let temp = document.createElement("div");
         temp.innerHTML = text;
-        const output = temp.innerText || temp.textContent;
-        temp = null;
-        return output;
+        return (temp.innerText || temp.textContent).replaceAll("\\\n", "\\\\\n").replaceAll("\\ ", "\\\\ ");
       }
       const tryKatex = (expr, options) => {
         try {
