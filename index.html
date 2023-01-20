@@ -69,7 +69,7 @@
     const unchanged = new marked.Renderer()
 
     renderer.paragraph = text => {
-      const mathRegex = /\$[\s\S]*[^\\]\$/g
+      const mathRegex = /\$+[^\$]*[^\\]\$+/g
       const mathExprArray = text.match(mathRegex)
       mathExprArray && mathExprArray.forEach((expr) => {
         const result = mathsExpression(expr)
