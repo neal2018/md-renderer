@@ -66,17 +66,24 @@
       }
     }
 
-    const unchanged = new marked.Renderer()
-
-    renderer.paragraph = text => {
+    const parseKetex = text => {
       const mathRegex = /\$+[^\$]*[^\\]\$+/g
       const mathExprArray = text.match(mathRegex)
       mathExprArray && mathExprArray.forEach((expr) => {
         const result = mathsExpression(expr)
         result && (text = text.replace(expr, result))
       })
+      return text.replace("\\$", "$")
+    }
 
-      return unchanged.paragraph(text.replace("\\$", "$"))
+    const unchanged = new marked.Renderer()
+
+    renderer.paragraph = text => {
+      return unchanged.paragraph(parseKetex(text))
+    }
+
+    renderer.list = (text, ordered) => {
+      return unchanged.list(parseKetex(text), ordered)
     }
 
     import { createApp } from "https://unpkg.com/petite-vue?module"
@@ -188,6 +195,13 @@ $
           document.execCommand('insertText', false, e.key + endCharMap[e.key]);
           jumpCursorTo(e.target.selectionStart - 1)
         }
+        // if the next char is the end parentheses, automatically jump to the end parentheses
+        if (e.key === ")" || e.key === "]" || e.key === "}") {
+          if (e.target.value[e.target.selectionStart] === e.key) {
+            e.preventDefault();
+            jumpCursorTo(e.target.selectionStart + 1)
+          }
+        }
         // automatically delete the end parentheses
         if (e.key === "Backspace" && e.target.selectionStart === e.target.selectionEnd) {
           // if the next character is the end parentheses
@@ -217,6 +231,7 @@ $
       font-family: "Fira Code", courier, monospace;
       color: #e2e8f0;
       background-color: #27272a;
+      overflow: hidden;
     }
 
     #editor {
@@ -243,8 +258,25 @@ $
 
     .output {
       padding: 0 20px;
+      overflow: scroll;
     }
 
+    code {
+      background-color: rgba(248, 250, 252, 0.08);
+      padding: 0 0.4rem;
+      border-radius: 0.4rem;
+      border: 0.05rem solid rgba(41, 46, 51, 0.1);
+    }
+
+    pre code {
+      padding: 0.5rem;
+      display: block;
+    }
+
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    ::-webkit-scrollbar {
+      display: none;
+    }
   </style>
 
 </body>
