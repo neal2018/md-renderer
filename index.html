@@ -114,6 +114,9 @@ $
           const end = getLineEnd(pos)
           return { start, end, line: e.target.value.substring(start, end) }
         }
+        const jumpCursorTo = (pos) => {
+          e.target.setSelectionRange(pos, pos)
+        }
         // if it is ctrl-c, copy the current line that the cursor is on
         if (e.ctrlKey && e.key === "c") {
           // if selected nothing
@@ -127,7 +130,7 @@ $
           let text = await navigator.clipboard.readText()
           if (text.startsWith(NEW_LINE)) {
             text = "\n" + text.substring(NEW_LINE.length)
-            e.target.selectionStart = getLineEnd(e.target.selectionStart)
+            jumpCursorTo(getLineEnd(e.target.selectionStart))
           }
           document.execCommand('insertText', false, text);
         }
@@ -141,7 +144,7 @@ $
               return
             }
             const { start: prevStart, end: prevEnd, line: prevLine } = getLine(start - 1)
-            e.target.selectionStart = end
+            jumpCursorTo(end)
             // delete all two lines
             for (let i = 0; i < line.length + prevLine.length + 1; i++) {
               document.execCommand('delete', false);
@@ -149,13 +152,13 @@ $
             // insert the two lines
             document.execCommand('insertText', false, line + "\n" + prevLine);
             const newPos = prevStart + originPosDiff
-            e.target.setSelectionRange(newPos, newPos)
+            jumpCursorTo(newPos)
           } else {
             if (end === e.target.value.length) {
               return
             }
             const { start: nextStart, end: nextEnd, line: nextLine } = getLine(end + 1)
-            e.target.selectionStart = nextEnd
+            jumpCursorTo(nextEnd)
             // delete all two lines
             for (let i = 0; i < line.length + nextLine.length + 1; i++) {
               document.execCommand('delete', false);
@@ -163,13 +166,34 @@ $
             // insert the two lines
             document.execCommand('insertText', false, nextLine + "\n" + line);
             const newPos = nextLine.length + 1 + start + originPosDiff
-            e.target.setSelectionRange(newPos, newPos)
+            jumpCursorTo(newPos)
           }
         }
         // if it is tab, enter 2 spaces
         if (e.key === "Tab") {
           e.preventDefault();
           document.execCommand('insertText', false, "  ");
+        }
+        // automatically complete parentheses
+        const endCharMap = {
+          "(": ")",
+          "[": "]",
+          "{": "}"
+        }
+        if (e.key === "(" || e.key === "[" || e.key === "{") {
+          e.preventDefault();
+          document.execCommand('insertText', false, e.key + endCharMap[e.key]);
+          jumpCursorTo(e.target.selectionStart - 1)
+        }
+        // automatically delete the end parentheses
+        if (e.key === "Backspace" && e.target.selectionStart === e.target.selectionEnd) {
+          // if the next character is the end parentheses
+          if (e.target.value[e.target.selectionStart] === endCharMap[e.target.value[e.target.selectionStart - 1]]) {
+            e.preventDefault();
+            jumpCursorTo(e.target.selectionStart + 1)
+            document.execCommand('delete', false);
+            document.execCommand('delete', false);
+          }
         }
       }
     }).mount("#editor")
