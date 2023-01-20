@@ -81,7 +81,9 @@
 
     import { createApp } from "https://unpkg.com/petite-vue?module"
     createApp({
-      input: `# title
+      input: (() => {
+        const input = localStorage.getItem("input")
+        return input ? input : `# title
 
 $$
 \\begin{aligned}
@@ -93,12 +95,13 @@ $$
 $
 e^{i\\pi} + 1 = 0
 $
-`,
+`})(),
       get compiledMarkdown() {
         return marked(this.input, options)
       },
       update: _.debounce(function (e) {
         this.input = e.target.value
+        localStorage.setItem("input", this.input)
       }, 100),
       hotkey: async (e) => {
         const NEW_LINE = "[LINE]"
