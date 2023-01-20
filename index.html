@@ -71,7 +71,6 @@
     renderer.paragraph = text => {
       const mathRegex = /\$[\s\S]*[^\\]\$/g
       const mathExprArray = text.match(mathRegex)
-      console.log(mathExprArray)
       mathExprArray && mathExprArray.forEach((expr) => {
         const result = mathsExpression(expr)
         result && (text = text.replace(expr, result))
@@ -100,12 +99,84 @@ $
       },
       update: _.debounce(function (e) {
         this.input = e.target.value
-      }, 100)
+      }, 100),
+      hotkey: async (e) => {
+        const NEW_LINE = "[LINE]"
+        const getLineStart = (pos) => {
+          return pos && (e.target.value.lastIndexOf("\n", pos - (e.target.value[pos] === "\n")) + 1)
+        }
+        const getLineEnd = (pos) => {
+          const end = e.target.value.indexOf("\n", pos)
+          return end === -1 ? e.target.value.length : end
+        }
+        const getLine = (pos) => {
+          const start = getLineStart(pos)
+          const end = getLineEnd(pos)
+          return { start, end, line: e.target.value.substring(start, end) }
+        }
+        // if it is ctrl-c, copy the current line that the cursor is on
+        if (e.ctrlKey && e.key === "c") {
+          // if selected nothing
+          if (e.target.selectionStart === e.target.selectionEnd) {
+            navigator.clipboard.writeText(NEW_LINE + getLine(e.target.selectionStart).line)
+          }
+        }
+        // if it is ctrl-v and the content to copy is a whole line, change to the new line and then paste
+        if (e.ctrlKey && e.key === "v") {
+          e.preventDefault();
+          let text = await navigator.clipboard.readText()
+          if (text.startsWith(NEW_LINE)) {
+            text = "\n" + text.substring(NEW_LINE.length)
+            e.target.selectionStart = getLineEnd(e.target.selectionStart)
+          }
+          document.execCommand('insertText', false, text);
+        }
+        // use alt-up to move up the whole line, and Alt-down to move down the whole line
+        if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+          e.preventDefault();
+          const { start, end, line } = getLine(e.target.selectionStart)
+          const originPosDiff = e.target.selectionStart - start
+          if (e.key === "ArrowUp") {
+            if (start === 0) {
+              return
+            }
+            const { start: prevStart, end: prevEnd, line: prevLine } = getLine(start - 1)
+            e.target.selectionStart = end
+            // delete all two lines
+            for (let i = 0; i < line.length + prevLine.length + 1; i++) {
+              document.execCommand('delete', false);
+            }
+            // insert the two lines
+            document.execCommand('insertText', false, line + "\n" + prevLine);
+            const newPos = prevStart + originPosDiff
+            e.target.setSelectionRange(newPos, newPos)
+          } else {
+            if (end === e.target.value.length) {
+              return
+            }
+            const { start: nextStart, end: nextEnd, line: nextLine } = getLine(end + 1)
+            e.target.selectionStart = nextEnd
+            // delete all two lines
+            for (let i = 0; i < line.length + nextLine.length + 1; i++) {
+              document.execCommand('delete', false);
+            }
+            // insert the two lines
+            document.execCommand('insertText', false, nextLine + "\n" + line);
+            const newPos = nextLine.length + 1 + start + originPosDiff
+            e.target.setSelectionRange(newPos, newPos)
+          }
+        }
+        // if it is tab, enter 2 spaces
+        if (e.key === "Tab") {
+          e.preventDefault();
+          document.execCommand('insertText', false, "  ");
+        }
+      }
     }).mount("#editor")
   </script>
 
   <div id="editor">
-    <textarea class="input" :value="input" @input="update"></textarea>
+    <textarea class="input" :value="input" @input="update" @keydown="hotkey"></textarea>
     <div class="output" v-html="compiledMarkdown"></div>
   </div>
 
